@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Автономный веб-калькулятор ФОТ РФ: ввод зарплаты чистыми, обратный расчёт НДФЛ и страховых взносов" />
+  <title>Расчётник ФОТ — РФ 2026</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --panel-2: #f0f4fa;
+      --text: #172033;
+      --muted: #647089;
+      --border: #d9e0eb;
+      --primary: #2458d3;
+      --primary-2: #1946b6;
+      --danger: #b42318;
+      --success: #067647;
+      --warning: #9a6700;
+      --shadow: 0 12px 35px rgba(29, 45, 78, .09);
+      --radius: 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1420;
+        --panel: #171e2b;
+        --panel-2: #20293a;
+        --text: #edf2ff;
+        --muted: #a9b5ca;
+        --border: #334057;
+        --primary: #7aa2ff;
+        --primary-2: #9bb8ff;
+        --danger: #ff8b84;
+        --success: #75dfb1;
+        --warning: #f7cc62;
+        --shadow: 0 16px 40px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    button, input, select { font: inherit; }
+    .app { max-width: 1600px; margin: 0 auto; padding: 24px; }
+    header {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0 0 4px; font-size: clamp(26px, 4vw, 40px); letter-spacing: -.035em; }
+    h2 { margin: 0; font-size: 20px; }
+    h3 { margin: 0 0 10px; font-size: 16px; }
+    p { margin: 0; }
+    .subtitle { color: var(--muted); max-width: 780px; }
+    .status {
+      display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+      color: var(--success); font-size: 13px; font-weight: 700; padding-top: 10px;
+    }
+    .status::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+    .panel {
+      background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden;
+    }
+    .panel-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 16px 18px; border-bottom: 1px solid var(--border);
+    }
+    .panel-body { padding: 18px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; }
+    .btn {
+      border: 1px solid var(--border); background: var(--panel); color: var(--text);
+      border-radius: 10px; padding: 9px 13px; cursor: pointer; font-weight: 700;
+      transition: .15s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: var(--primary); }
+    .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn.primary:hover { background: var(--primary-2); }
+    .btn.danger { color: var(--danger); }
+    .btn.small { padding: 6px 9px; font-size: 13px; }
+    .grid { display: grid; gap: 14px; }
+    .settings-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+    label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 750; }
+    input, select {
+      width: 100%; min-width: 0; padding: 9px 10px; color: var(--text); background: var(--panel);
+      border: 1px solid var(--border); border-radius: 9px; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 17%, transparent); }
+    input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="checkbox"] { width: 18px; height: 18px; padding: 0; }
+    .checkline { display: flex; align-items: center; gap: 9px; color: var(--text); font-size: 13px; font-weight: 650; }
+    details.settings { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 13px; }
+    details.settings summary { cursor: pointer; color: var(--primary); font-weight: 750; }
+    .metrics { grid-template-columns: repeat(5, minmax(170px, 1fr)); }
+    .metric { padding: 16px; border-right: 1px solid var(--border); }
+    .metric:last-child { border-right: 0; }
+    .metric .name { color: var(--muted); font-size: 12px; font-weight: 750; }
+    .metric .value { margin-top: 5px; font-size: clamp(20px, 2.4vw, 29px); font-weight: 850; letter-spacing: -.03em; }
+    .metric.highlight .value { color: var(--primary); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1500px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 9px; vertical-align: middle; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--panel-2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    td { text-align: right; }
+    td input, td select { min-width: 110px; text-align: right; }
+    td .name-input { min-width: 190px; text-align: left; }
+    .money { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 680; }
+    .money.primary { color: var(--primary); }
+    .money.negative { color: var(--danger); }
+    .row-actions { display: flex; justify-content: flex-end; gap: 6px; }
+    .advanced-row td { background: var(--panel-2); text-align: left; padding: 14px 16px 16px; }
+    .advanced-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .advanced-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .schedule-box { margin-top: 16px; border-top: 1px dashed var(--border); padding-top: 15px; }
+    .schedule-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .schedule-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+    .schedule-table { min-width: 860px; }
+    .schedule-table th, .schedule-table td { padding: 7px 9px; }
+    .schedule-table td:first-child { font-weight: 750; white-space: nowrap; }
+    .schedule-table input { min-width: 125px; }
+    .schedule-table tr.inactive { opacity: .5; }
+    .schedule-help { color: var(--muted); font-size: 12px; max-width: 760px; }
+    .note { padding: 12px 14px; border-radius: 11px; background: color-mix(in srgb, var(--warning) 11%, transparent); color: var(--text); border: 1px solid color-mix(in srgb, var(--warning) 28%, var(--border)); font-size: 13px; }
+    .note strong { color: var(--warning); }
+    .empty { padding: 38px; text-align: center; color: var(--muted); }
+    .footer { color: var(--muted); font-size: 12px; padding: 4px 4px 28px; }
+    .footer a { color: var(--primary); }
+    .split { display: flex; align-items: center; gap: 8px; }
+    .pill { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 3px 8px; font-size: 11px; color: var(--muted); }
+    .toast {
+      position: fixed; right: 20px; bottom: 20px; z-index: 20; background: var(--text); color: var(--bg);
+      padding: 11px 14px; border-radius: 10px; box-shadow: var(--shadow); opacity: 0; transform: translateY(12px);
+      pointer-events: none; transition: .2s ease; font-size: 13px; font-weight: 700;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 900px) {
+      .app { padding: 14px; }
+      header { flex-direction: column; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .metric { border-right: 0; border-bottom: 1px solid var(--border); }
+    }
+    @media print {
+      body { background: #fff; color: #000; }
+      .app { max-width: none; padding: 0; }
+      .toolbar, .status, .row-actions, .advanced-row, details.settings, .btn { display: none !important; }
+      .panel { box-shadow: none; break-inside: avoid; }
+      input, select { border: 0; padding: 0; background: transparent; color: #000; }
+      table { min-width: 0; font-size: 10px; }
+      th, td { padding: 5px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Расчётник ФОТ</h1>
+      <p class="subtitle">Введите суммы, которые сотрудники должны получить чистыми. Калькулятор сам восстановит начисление до НДФЛ, рассчитает страховые взносы работодателя и полную стоимость. Работает локально и сохраняет данные в JSON.</p>
+    </div>
+    <div class="status" id="saveStatus">Сохранено локально</div>
+  </header>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Данные расчёта</h2>
+      <div class="toolbar">
+        <button class="btn primary" id="addEmployeeBtn">＋ Сотрудник</button>
+        <button class="btn" id="exportBtn">Скачать JSON</button>
+        <button class="btn" id="importBtn">Загрузить JSON</button>
+        <button class="btn" id="copyBtn">Копировать JSON</button>
+        <button class="btn" id="printBtn">Печать</button>
+        <button class="btn danger" id="resetBtn">Сбросить</button>
+        <input type="file" id="fileInput" accept="application/json,.json" hidden />
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="grid settings-grid">
+        <label>Год
+          <input id="year" type="number" min="2025" max="2100" />
+        </label>
+        <label>Месяц
+          <select id="month"></select>
+        </label>
+        <label>Тариф по умолчанию
+          <select id="defaultTariff">
+            <option value="standard">Общий: 30% / 15,1%</option>
+            <option value="sme15">МСП: 30% до 1,5 МРОТ, далее 15%</option>
+            <option value="sme76">Обрабатывающее МСП: далее 7,6%</option>
+          </select>
+        </label>
+        <label>Класс риска по травматизму
+          <select id="accidentClass"></select>
+        </label>
+        <label class="checkline">
+          <input id="directorMinimumEnabled" type="checkbox" />
+          Минимальная база МРОТ для руководителей
+        </label>
+      </div>
+
+      <details class="settings">
+        <summary>Расширенные ставки и лимиты</summary>
+        <div class="grid settings-grid" style="margin-top:14px">
+          <label>Предельная база взносов, ₽
+            <input id="contributionLimit" type="number" min="0" step="1" />
+          </label>
+          <label>Федеральный МРОТ, ₽
+            <input id="mrot" type="number" min="0" step="1" />
+          </label>
+          <label>Основной тариф в пределах базы, %
+            <input id="standardRateBelow" type="number" min="0" step="0.01" />
+          </label>
+          <label>Основной тариф сверх базы, %
+            <input id="standardRateAbove" type="number" min="0" step="0.01" />
+          </label>
+          <label>Порог МСП, МРОТ
+            <input id="smeThresholdMultiplier" type="number" min="0" step="0.1" />
+          </label>
+          <label>Льготный тариф МСП, %
+            <input id="smeRateExcess" type="number" min="0" step="0.01" />
+          </label>
+          <label>Льготный тариф производства, %
+            <input id="manufacturingRateExcess" type="number" min="0" step="0.01" />
+          </label>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Итого за выбранный месяц</h2>
+        <p class="subtitle" style="font-size:12px">Фактический расчёт с учётом накопленных баз, указанных у сотрудников.</p>
+      </div>
+    </div>
+    <div class="grid metrics">
+      <div class="metric"><div class="name">Начислено сотрудникам (грязными)</div><div class="value" id="totalGross">0 ₽</div></div>
+      <div class="metric"><div class="name">НДФЛ к удержанию</div><div class="value" id="totalNdfl">0 ₽</div></div>
+      <div class="metric"><div class="name">К выплате сотрудникам (чистыми)</div><div class="value" id="totalNet">0 ₽</div></div>
+      <div class="metric"><div class="name">Все взносы работодателя</div><div class="value" id="totalContributions">0 ₽</div></div>
+      <div class="metric highlight"><div class="name">Полная стоимость для работодателя</div><div class="value" id="totalEmployerCost">0 ₽</div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Прогноз на год</h2>
+        <p class="subtitle" style="font-size:12px">Год считается по реальному помесячному графику каждого сотрудника. Повышение оклада, премии и другие изменения учитываются с нужного месяца; прогрессивный НДФЛ и лимит взносов пересчитываются последовательно с января.</p>
+      </div>
+      <span class="pill">январь–декабрь</span>
+    </div>
+    <div class="grid metrics">
+      <div class="metric"><div class="name">Начислено за год (грязными)</div><div class="value" id="annualGross">0 ₽</div></div>
+      <div class="metric"><div class="name">НДФЛ за год</div><div class="value" id="annualNdfl">0 ₽</div></div>
+      <div class="metric"><div class="name">К выплате за год (чистыми)</div><div class="value" id="annualNet">0 ₽</div></div>
+      <div class="metric"><div class="name">Все взносы за год</div><div class="value" id="annualContributions">0 ₽</div></div>
+      <div class="metric highlight"><div class="name">Полная стоимость за год</div><div class="value" id="annualEmployerCost">0 ₽</div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Сотрудники</h2>
+        <p class="subtitle" style="font-size:12px">Выберите месяц сверху. Изменение оклада в основной строке применяется с выбранного месяца до декабря; премия и прочее — только к выбранному месяцу. Полный график на 12 месяцев доступен в ⚙.</p>
+      </div>
+      <div class="split"><span class="pill">Ввод: чистыми</span><span class="pill" id="employeeCount">0 сотрудников</span></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Сотрудник</th>
+            <th>Оклад с выбранного месяца (чистыми), ₽</th>
+            <th>Премия выбранного месяца (чистыми), ₽</th>
+            <th>Прочее выбранного месяца (чистыми), ₽</th>
+            <th>Тариф</th>
+            <th>Начислено (грязными)</th>
+            <th>НДФЛ</th>
+            <th>К выплате (чистыми)</th>
+            <th>Единые взносы</th>
+            <th>Травматизм</th>
+            <th>Доптариф</th>
+            <th>Стоимость / месяц</th>
+            <th>Стоимость / год</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="employeesBody"></tbody>
+      </table>
+      <div class="empty" id="emptyState" hidden>Добавьте первого сотрудника, чтобы начать расчёт.</div>
+    </div>
+  </section>
+
+  <div class="note">
+    <strong>Важно.</strong> Вводимые суммы считаются желаемой выплатой сотруднику на руки после НДФЛ и прочих удержаний. Калькулятор подбирает начисление до НДФЛ обратным расчётом. Это управленческий расчётник, а не замена бухгалтерской программе: облагаемость отдельных выплат, статус резидента, районные коэффициенты, патенты, иностранные сотрудники и специальные льготы могут менять результат.
+  </div>
+
+  <footer class="footer">
+    <p style="margin-top:14px">Значения по умолчанию для 2026 года: единая предельная база 2 979 000 ₽; основной тариф 30% в пределах базы и 15,1% сверх неё; МРОТ 27 093 ₽; травматизм — от 0,2% до 8,5%; НДФЛ — прогрессивная шкала 13/15/18/20/22%.</p>
+    <p style="margin-top:7px">Источники: <a href="https://www.nalog.gov.ru/rn77/news/activities_fts/16577139/" target="_blank" rel="noreferrer">ФНС — база взносов 2026</a>, <a href="https://www.nalog.gov.ru/rn14/taxation/taxes/ndfl/" target="_blank" rel="noreferrer">ФНС — НДФЛ</a>, <a href="https://sfr.gov.ru/branches/spb/info/~0/13307?info_category=2" target="_blank" rel="noreferrer">СФР — травматизм</a>.</p>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'fot-calculator-rf-2026-v4-monthly-schedule';
+  const LEGACY_STORAGE_KEYS = ['fot-calculator-rf-2026-v3-net-annual', 'fot-calculator-rf-2026-v2-net', 'fot-calculator-rf-2026-v1'];
+  const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const ACCIDENT_RATES = [0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.7,1.9,2.1,2.3,2.5,2.8,3.1,3.4,3.7,4.1,4.5,5.0,5.5,6.1,6.7,7.4,8.1,8.5];
+  const NDFL_BRACKETS = [
+    { upTo: 2400000, rate: 0.13 },
+    { upTo: 5000000, rate: 0.15 },
+    { upTo: 20000000, rate: 0.18 },
+    { upTo: 50000000, rate: 0.20 },
+    { upTo: null, rate: 0.22 }
+  ];
+
+  const moneyFmt = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 });
+  const numberFmt = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+
+  const els = {};
+  const ids = ['saveStatus','year','month','defaultTariff','accidentClass','directorMinimumEnabled','contributionLimit','mrot','standardRateBelow','standardRateAbove','smeThresholdMultiplier','smeRateExcess','manufacturingRateExcess','employeesBody','emptyState','employeeCount','totalGross','totalNdfl','totalNet','totalContributions','totalEmployerCost','annualGross','annualNdfl','annualNet','annualContributions','annualEmployerCost','addEmployeeBtn','exportBtn','importBtn','copyBtn','printBtn','resetBtn','fileInput','toast'];
+  ids.forEach(id => els[id] = document.getElementById(id));
+
+  function defaultState() {
+    const now = new Date();
+    return {
+      schemaVersion: 4,
+      app: 'Расчётник ФОТ РФ',
+      inputBasis: 'net',
+      settings: {
+        year: Math.max(2026, now.getFullYear()),
+        month: now.getMonth() + 1,
+        defaultTariff: 'standard',
+        accidentClass: 1,
+        directorMinimumEnabled: true,
+        contributionLimit: 2979000,
+        mrot: 27093,
+        standardRateBelow: 30,
+        standardRateAbove: 15.1,
+        smeThresholdMultiplier: 1.5,
+        smeRateExcess: 15,
+        manufacturingRateExcess: 7.6
+      },
+      employees: [newEmployee('Иванов Иван', 100000)]
+    };
+  }
+
+  function createMonthlyCompensation(netSalary = 0, netBonus = 0, netOther = 0) {
+    return Array.from({ length: 12 }, () => ({
+      netSalary: nonNegative(netSalary),
+      netBonus: nonNegative(netBonus),
+      netOther: nonNegative(netOther)
+    }));
+  }
+
+  function newEmployee(name = '', netSalary = 0) {
+    return {
+      id: (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
+      name,
+      netSalary,
+      netBonus: 0,
+      netOther: 0,
+      monthlyCompensation: createMonthlyCompensation(netSalary, 0, 0),
+      tariffMode: 'inherit',
+      priorNdflBase: 0,
+      priorContributionBase: 0,
+      ndflDeduction: 0,
+      ndflExempt: 0,
+      contributionExempt: 0,
+      otherWithholdings: 0,
+      extraPensionRate: 0,
+      accidentRateOverride: '',
+      accidentMultiplier: 100,
+      isDirector: false,
+      directorDays: 31,
+      customMonthlyThreshold: 0,
+      customRateExcess: 0,
+      annualMonths: 12
+    };
+  }
+
+  let state = loadState();
+  let expanded = new Set();
+  let saveTimer = null;
+
+  function loadState() {
+    try {
+      let raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        for (const key of LEGACY_STORAGE_KEYS) {
+          raw = localStorage.getItem(key);
+          if (raw) break;
+        }
+      }
+      if (!raw) return defaultState();
+      const parsed = JSON.parse(raw);
+      return normalizeState(parsed);
+    } catch (e) {
+      console.warn('Не удалось прочитать локальные данные', e);
+      return defaultState();
+    }
+  }
+
+  function legacyNetFromGross(item) {
+    const gross = round2(nonNegative(item.salary) + nonNegative(item.bonus) + nonNegative(item.otherAccruals));
+    const taxableCurrent = Math.max(0, gross - nonNegative(item.ndflExempt) - nonNegative(item.ndflDeduction));
+    const priorNdflBase = nonNegative(item.priorNdflBase);
+    const ndfl = Math.max(0, round2(calculateProgressiveTax(priorNdflBase + taxableCurrent) - calculateProgressiveTax(priorNdflBase)));
+    return Math.max(0, round2(gross - ndfl - nonNegative(item.otherWithholdings)));
+  }
+
+  function migrateLegacyEmployee(item) {
+    const grossSalary = nonNegative(item.salary);
+    const grossBonus = nonNegative(item.bonus);
+    const grossOther = nonNegative(item.otherAccruals);
+    const grossTotal = grossSalary + grossBonus + grossOther;
+    const netTotal = legacyNetFromGross(item);
+    const salaryShare = grossTotal > 0 ? grossSalary / grossTotal : 1;
+    const bonusShare = grossTotal > 0 ? grossBonus / grossTotal : 0;
+    const netSalary = round2(netTotal * salaryShare);
+    const netBonus = round2(netTotal * bonusShare);
+    const netOther = round2(Math.max(0, netTotal - netSalary - netBonus));
+    const migrated = { ...newEmployee(), ...item, netSalary, netBonus, netOther, monthlyCompensation: createMonthlyCompensation(netSalary, netBonus, netOther) };
+    delete migrated.salary;
+    delete migrated.bonus;
+    delete migrated.otherAccruals;
+    migrated.id = item.id || newEmployee().id;
+    return migrated;
+  }
+
+  function normalizeMonthlyCompensation(item) {
+    const baseSalary = nonNegative(item.netSalary);
+    const baseBonus = nonNegative(item.netBonus);
+    const baseOther = nonNegative(item.netOther);
+    const source = Array.isArray(item.monthlyCompensation) ? item.monthlyCompensation : [];
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = source[index] && typeof source[index] === 'object' ? source[index] : {};
+      return {
+        netSalary: month.netSalary == null ? baseSalary : nonNegative(month.netSalary),
+        netBonus: month.netBonus == null ? baseBonus : nonNegative(month.netBonus),
+        netOther: month.netOther == null ? baseOther : nonNegative(month.netOther)
+      };
+    });
+  }
+
+  function syncEmployeeBaseFromSchedule(employee) {
+    const january = getMonthlyCompensation(employee, 1);
+    employee.netSalary = january.netSalary;
+    employee.netBonus = january.netBonus;
+    employee.netOther = january.netOther;
+  }
+
+  function normalizeState(input) {
+    const base = defaultState();
+    const settings = { ...base.settings, ...(input && input.settings ? input.settings : {}) };
+    let employees;
+    if (Array.isArray(input && input.employees)) {
+      const isLegacy = nonNegative(input.schemaVersion) < 2 || input.employees.some(item => 'salary' in item || 'bonus' in item || 'otherAccruals' in item);
+      employees = input.employees.map(item => {
+        const normalized = isLegacy
+          ? migrateLegacyEmployee(item)
+          : ({ ...newEmployee(), ...item, id: item.id || newEmployee().id });
+        normalized.monthlyCompensation = normalizeMonthlyCompensation({
+          ...normalized,
+          monthlyCompensation: Array.isArray(item.monthlyCompensation) ? item.monthlyCompensation : []
+        });
+        syncEmployeeBaseFromSchedule(normalized);
+        return normalized;
+      });
+    } else {
+      employees = base.employees;
+    }
+    return { schemaVersion: 4, app: 'Расчётник ФОТ РФ', inputBasis: 'net', settings, employees };
+  }
+
+  function num(value) {
+    const n = typeof value === 'string' ? Number(value.replace(/[\s\u00a0₽]/g, '').replace(',', '.')) : Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+  function nonNegative(value) { return Math.max(0, num(value)); }
+  function round2(value) { return Math.round((num(value) + Number.EPSILON) * 100) / 100; }
+  function fmtMoney(value) { return moneyFmt.format(round2(value)); }
+  function pct(value) { return nonNegative(value) / 100; }
+
+
+  function clampMonth(month) {
+    return Math.max(1, Math.min(12, Math.round(nonNegative(month) || 1)));
+  }
+
+  function getMonthlyCompensation(employee, month = state.settings.month) {
+    const index = clampMonth(month) - 1;
+    const source = Array.isArray(employee.monthlyCompensation) ? employee.monthlyCompensation[index] : null;
+    return {
+      netSalary: source && source.netSalary != null ? nonNegative(source.netSalary) : nonNegative(employee.netSalary),
+      netBonus: source && source.netBonus != null ? nonNegative(source.netBonus) : nonNegative(employee.netBonus),
+      netOther: source && source.netOther != null ? nonNegative(source.netOther) : nonNegative(employee.netOther)
+    };
+  }
+
+  function ensureMonthlyCompensation(employee) {
+    if (!Array.isArray(employee.monthlyCompensation) || employee.monthlyCompensation.length !== 12) {
+      employee.monthlyCompensation = normalizeMonthlyCompensation(employee);
+    }
+    return employee.monthlyCompensation;
+  }
+
+  function setMonthlyCompensation(employee, month, field, value, throughDecember = false) {
+    const schedule = ensureMonthlyCompensation(employee);
+    const start = clampMonth(month) - 1;
+    const end = throughDecember ? 11 : start;
+    for (let index = start; index <= end; index++) {
+      schedule[index] = { ...schedule[index], [field]: nonNegative(value) };
+    }
+    syncEmployeeBaseFromSchedule(employee);
+  }
+
+  function daysInMonth(month = state.settings.month) {
+    return new Date(num(state.settings.year), num(month), 0).getDate();
+  }
+
+  function calculateProgressiveTax(base) {
+    let remaining = Math.max(0, base);
+    let lower = 0;
+    let tax = 0;
+    for (const bracket of NDFL_BRACKETS) {
+      const upper = bracket.upTo == null ? Infinity : bracket.upTo;
+      const slice = Math.max(0, Math.min(remaining, upper - lower));
+      tax += slice * bracket.rate;
+      remaining -= slice;
+      lower = upper;
+      if (remaining <= 0) break;
+    }
+    return round2(tax);
+  }
+
+  function calculateStandardUnified(base, priorBase) {
+    const limit = nonNegative(state.settings.contributionLimit);
+    const belowRate = pct(state.settings.standardRateBelow);
+    const aboveRate = pct(state.settings.standardRateAbove);
+    const room = Math.max(0, limit - nonNegative(priorBase));
+    const below = Math.min(base, room);
+    const above = Math.max(0, base - below);
+    return {
+      amount: round2(below * belowRate + above * aboveRate),
+      belowBase: below,
+      aboveBase: above
+    };
+  }
+
+  function resolveTariff(employee) {
+    return employee.tariffMode === 'inherit' ? state.settings.defaultTariff : employee.tariffMode;
+  }
+
+  function calculateNdflForGross(employee, gross) {
+    const taxableCurrent = Math.max(0, round2(gross) - nonNegative(employee.ndflExempt) - nonNegative(employee.ndflDeduction));
+    const priorNdflBase = nonNegative(employee.priorNdflBase);
+    const ndfl = Math.max(0, round2(calculateProgressiveTax(priorNdflBase + taxableCurrent) - calculateProgressiveTax(priorNdflBase)));
+    return { taxableCurrent, ndfl };
+  }
+
+  function grossFromTargetNet(employee, targetNet) {
+    const target = round2(nonNegative(targetNet));
+    const otherWithholdings = round2(nonNegative(employee.otherWithholdings));
+    const netAtCents = grossCents => {
+      const gross = grossCents / 100;
+      const { ndfl } = calculateNdflForGross(employee, gross);
+      return round2(gross - ndfl - otherWithholdings);
+    };
+
+    let low = 0;
+    let high = Math.max(100, Math.ceil((target + otherWithholdings) * 100));
+    const maxCents = 9_000_000_000_000_000;
+    while (netAtCents(high) < target && high < maxCents / 2) high *= 2;
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      if (netAtCents(mid) >= target) high = mid;
+      else low = mid + 1;
+    }
+    return round2(low / 100);
+  }
+
+  function calculateEmployee(employee, calculationMonth = state.settings.month) {
+    const monthlyCompensation = getMonthlyCompensation(employee, calculationMonth);
+    const targetNet = round2(monthlyCompensation.netSalary + monthlyCompensation.netBonus + monthlyCompensation.netOther);
+    const gross = grossFromTargetNet(employee, targetNet);
+    const { taxableCurrent, ndfl } = calculateNdflForGross(employee, gross);
+
+    const actualContributionBase = Math.max(0, gross - nonNegative(employee.contributionExempt));
+    let unifiedBase = actualContributionBase;
+    let directorMinimumAdded = 0;
+    if (state.settings.directorMinimumEnabled && employee.isDirector) {
+      const dim = daysInMonth(calculationMonth);
+      const activeDays = Math.min(dim, Math.max(0, nonNegative(employee.directorDays)));
+      const minimumBase = nonNegative(state.settings.mrot) * activeDays / dim;
+      if (minimumBase > unifiedBase) {
+        directorMinimumAdded = minimumBase - unifiedBase;
+        unifiedBase = minimumBase;
+      }
+    }
+
+    const mode = resolveTariff(employee);
+    let unified;
+    if (mode === 'standard') {
+      unified = calculateStandardUnified(unifiedBase, employee.priorContributionBase).amount;
+    } else {
+      let threshold;
+      let excessRate;
+      if (mode === 'sme15') {
+        threshold = nonNegative(state.settings.mrot) * nonNegative(state.settings.smeThresholdMultiplier);
+        excessRate = pct(state.settings.smeRateExcess);
+      } else if (mode === 'sme76') {
+        threshold = nonNegative(state.settings.mrot) * nonNegative(state.settings.smeThresholdMultiplier);
+        excessRate = pct(state.settings.manufacturingRateExcess);
+      } else {
+        threshold = nonNegative(employee.customMonthlyThreshold);
+        excessRate = pct(employee.customRateExcess);
+      }
+      const lowerPart = Math.min(unifiedBase, threshold);
+      const excessPart = Math.max(0, unifiedBase - threshold);
+      const lowerContribution = calculateStandardUnified(lowerPart, employee.priorContributionBase).amount;
+      unified = round2(lowerContribution + excessPart * excessRate);
+    }
+
+    const globalAccidentRate = ACCIDENT_RATES[Math.max(0, Math.min(31, nonNegative(state.settings.accidentClass) - 1))];
+    const accidentRate = employee.accidentRateOverride === '' || employee.accidentRateOverride == null
+      ? globalAccidentRate
+      : nonNegative(employee.accidentRateOverride);
+    const accident = round2(actualContributionBase * pct(accidentRate) * pct(employee.accidentMultiplier));
+    const extraPension = round2(actualContributionBase * pct(employee.extraPensionRate));
+    const contributions = round2(unified + accident + extraPension);
+    const otherWithholdings = nonNegative(employee.otherWithholdings);
+    const calculatedNet = round2(gross - ndfl - otherWithholdings);
+    const net = targetNet;
+    const employerCost = round2(gross + contributions);
+
+    return {
+      targetNet, gross, taxableCurrent, ndfl, actualContributionBase, unifiedBase, directorMinimumAdded,
+      unified, accident, extraPension, contributions, otherWithholdings, calculatedNet, net, employerCost,
+      mode, accidentRate
+    };
+  }
+
+  function emptyTotals() {
+    return { gross:0, ndfl:0, net:0, unified:0, accident:0, extraPension:0, contributions:0, employerCost:0 };
+  }
+
+  function addCalculation(t, c) {
+    t.gross += c.gross;
+    t.ndfl += c.ndfl;
+    t.net += c.net;
+    t.unified += c.unified;
+    t.accident += c.accident;
+    t.extraPension += c.extraPension;
+    t.contributions += c.contributions;
+    t.employerCost += c.employerCost;
+    return t;
+  }
+
+  function calculateTotals() {
+    return state.employees.reduce((t, e) => addCalculation(t, calculateEmployee(e)), emptyTotals());
+  }
+
+  function calculateAnnualBreakdown(employee) {
+    const rows = [];
+    let priorNdflBase = 0;
+    let priorContributionBase = 0;
+    const months = Math.max(0, Math.min(12, Math.round(nonNegative(employee.annualMonths ?? 12))));
+    for (let month = 1; month <= 12; month++) {
+      if (month > months) {
+        rows.push({ month, active: false, ...emptyTotals(), targetNet: 0, taxableCurrent: 0, unifiedBase: 0 });
+        continue;
+      }
+      const projected = { ...employee, priorNdflBase, priorContributionBase };
+      const c = calculateEmployee(projected, month);
+      rows.push({ month, active: true, ...c });
+      priorNdflBase = round2(priorNdflBase + c.taxableCurrent);
+      priorContributionBase = round2(priorContributionBase + c.unifiedBase);
+    }
+    return rows;
+  }
+
+  function calculateAnnualEmployee(employee) {
+    const totals = emptyTotals();
+    const rows = calculateAnnualBreakdown(employee);
+    rows.filter(row => row.active).forEach(row => addCalculation(totals, row));
+    totals.months = rows.filter(row => row.active).length;
+    return totals;
+  }
+
+  function calculateAnnualTotals() {
+    return state.employees.reduce((t, e) => addCalculation(t, calculateAnnualEmployee(e)), emptyTotals());
+  }
+
+  function fillStaticOptions() {
+    els.month.innerHTML = MONTHS.map((m, i) => `<option value="${i+1}">${m}</option>`).join('');
+    els.accidentClass.innerHTML = ACCIDENT_RATES.map((rate, i) => `<option value="${i+1}">${i+1} класс — ${numberFmt.format(rate)}%</option>`).join('');
+  }
+
+  function syncSettingsToUI() {
+    const s = state.settings;
+    els.year.value = s.year;
+    els.month.value = s.month;
+    els.defaultTariff.value = s.defaultTariff;
+    els.accidentClass.value = s.accidentClass;
+    els.directorMinimumEnabled.checked = Boolean(s.directorMinimumEnabled);
+    els.contributionLimit.value = s.contributionLimit;
+    els.mrot.value = s.mrot;
+    els.standardRateBelow.value = s.standardRateBelow;
+    els.standardRateAbove.value = s.standardRateAbove;
+    els.smeThresholdMultiplier.value = s.smeThresholdMultiplier;
+    els.smeRateExcess.value = s.smeRateExcess;
+    els.manufacturingRateExcess.value = s.manufacturingRateExcess;
+  }
+
+  function tariffOptions(selected) {
+    const options = [
+      ['inherit','Как в настройках'],
+      ['standard','Общий 30% / 15,1%'],
+      ['sme15','МСП 15% сверх 1,5 МРОТ'],
+      ['sme76','Производство 7,6% сверх 1,5 МРОТ'],
+      ['custom','Свой тариф']
+    ];
+    return options.map(([v,t]) => `<option value="${v}" ${selected===v?'selected':''}>${t}</option>`).join('');
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+  }
+
+  function renderEmployees() {
+    els.employeesBody.innerHTML = '';
+    els.emptyState.hidden = state.employees.length > 0;
+    state.employees.forEach((employee, index) => {
+      const selectedMonth = clampMonth(state.settings.month);
+      const monthly = getMonthlyCompensation(employee, selectedMonth);
+      const c = calculateEmployee(employee, selectedMonth);
+      const annual = calculateAnnualEmployee(employee);
+      const breakdown = calculateAnnualBreakdown(employee);
+      const tr = document.createElement('tr');
+      tr.dataset.id = employee.id;
+      tr.innerHTML = `
+        <td><input class="name-input" data-field="name" value="${escapeHtml(employee.name)}" placeholder="ФИО" /></td>
+        <td><input data-field="netSalary" data-money-input data-month="${selectedMonth}" data-apply="forward" inputmode="decimal" value="${monthly.netSalary}" title="Оклад на руки. Изменение применяется с ${MONTHS[selectedMonth-1].toLowerCase()} до декабря." /></td>
+        <td><input data-field="netBonus" data-money-input data-month="${selectedMonth}" data-apply="month" inputmode="decimal" value="${monthly.netBonus}" title="Премия на руки только за ${MONTHS[selectedMonth-1].toLowerCase()}." /></td>
+        <td><input data-field="netOther" data-money-input data-month="${selectedMonth}" data-apply="month" inputmode="decimal" value="${monthly.netOther}" title="Прочие выплаты на руки только за ${MONTHS[selectedMonth-1].toLowerCase()}." /></td>
+        <td><select data-field="tariffMode">${tariffOptions(employee.tariffMode)}</select></td>
+        <td class="money" data-output="gross">${fmtMoney(c.gross)}</td>
+        <td class="money negative" data-output="ndfl">${fmtMoney(c.ndfl)}</td>
+        <td class="money" data-output="net">${fmtMoney(c.net)}</td>
+        <td class="money" data-output="unified">${fmtMoney(c.unified)}</td>
+        <td class="money" data-output="accident">${fmtMoney(c.accident)}</td>
+        <td class="money" data-output="extraPension">${fmtMoney(c.extraPension)}</td>
+        <td class="money primary" data-output="employerCost">${fmtMoney(c.employerCost)}</td>
+        <td class="money primary" data-output="annualEmployerCost" title="Прогноз за ${annual.months} мес.">${fmtMoney(annual.employerCost)}</td>
+        <td><div class="row-actions"><button class="btn small" data-action="toggle" title="Помесячный график и дополнительные параметры">⚙</button><button class="btn small danger" data-action="delete" title="Удалить">×</button></div></td>
+      `;
+      els.employeesBody.appendChild(tr);
+
+      if (expanded.has(employee.id)) {
+        const scheduleRows = breakdown.map(row => {
+          const comp = getMonthlyCompensation(employee, row.month);
+          return `<tr class="${row.active ? '' : 'inactive'}">
+            <td>${MONTHS[row.month-1]}</td>
+            <td><input data-field="netSalary" data-money-input data-month="${row.month}" data-apply="month" inputmode="decimal" value="${comp.netSalary}" title="Оклад на руки только для этого месяца" /></td>
+            <td><input data-field="netBonus" data-money-input data-month="${row.month}" data-apply="month" inputmode="decimal" value="${comp.netBonus}" title="Премия на руки только для этого месяца" /></td>
+            <td><input data-field="netOther" data-money-input data-month="${row.month}" data-apply="month" inputmode="decimal" value="${comp.netOther}" title="Прочие выплаты на руки только для этого месяца" /></td>
+            <td class="money" data-schedule-output="net" data-month="${row.month}">${fmtMoney(row.net)}</td>
+            <td class="money primary" data-schedule-output="employerCost" data-month="${row.month}">${fmtMoney(row.employerCost)}</td>
+          </tr>`;
+        }).join('');
+        const adv = document.createElement('tr');
+        adv.className = 'advanced-row';
+        adv.dataset.id = employee.id;
+        adv.innerHTML = `<td colspan="14">
+          <div class="advanced-title">
+            <h3>Дополнительные параметры: ${escapeHtml(employee.name || `сотрудник ${index+1}`)}</h3>
+            <span class="pill">База взносов: ${fmtMoney(c.unifiedBase)}${c.directorMinimumAdded > 0 ? ` · добавлено до МРОТ ${fmtMoney(c.directorMinimumAdded)}` : ''}</span>
+          </div>
+          <div class="advanced-grid">
+            <label>Доход для НДФЛ с начала года до месяца, ₽
+              <input data-field="priorNdflBase" type="number" min="0" step="0.01" value="${nonNegative(employee.priorNdflBase)}" />
+            </label>
+            <label>База взносов с начала года до месяца, ₽
+              <input data-field="priorContributionBase" type="number" min="0" step="0.01" value="${nonNegative(employee.priorContributionBase)}" />
+            </label>
+            <label>Налоговый вычет текущего месяца, ₽
+              <input data-field="ndflDeduction" type="number" min="0" step="0.01" value="${nonNegative(employee.ndflDeduction)}" />
+            </label>
+            <label>Не облагается НДФЛ, ₽
+              <input data-field="ndflExempt" type="number" min="0" step="0.01" value="${nonNegative(employee.ndflExempt)}" />
+            </label>
+            <label>Не облагается страховыми взносами, ₽
+              <input data-field="contributionExempt" type="number" min="0" step="0.01" value="${nonNegative(employee.contributionExempt)}" />
+            </label>
+            <label>Прочие удержания, ₽
+              <input data-field="otherWithholdings" type="number" min="0" step="0.01" value="${nonNegative(employee.otherWithholdings)}" />
+            </label>
+            <label>Дополнительный пенсионный тариф, %
+              <input data-field="extraPensionRate" type="number" min="0" step="0.1" value="${nonNegative(employee.extraPensionRate)}" />
+            </label>
+            <label>Травматизм для сотрудника, % (пусто = общий)
+              <input data-field="accidentRateOverride" type="number" min="0" step="0.01" value="${employee.accidentRateOverride ?? ''}" placeholder="${numberFmt.format(c.accidentRate)}" />
+            </label>
+            <label>Коэффициент тарифа травматизма, %
+              <input data-field="accidentMultiplier" type="number" min="0" step="1" value="${nonNegative(employee.accidentMultiplier)}" />
+            </label>
+            <label class="checkline"><input data-field="isDirector" type="checkbox" ${employee.isDirector?'checked':''} /> Руководитель коммерческой организации</label>
+            <label>Дней исполнения полномочий в месяце
+              <input data-field="directorDays" type="number" min="0" max="31" step="1" value="${nonNegative(employee.directorDays)}" />
+            </label>
+            <label>Свой порог льготной части, ₽
+              <input data-field="customMonthlyThreshold" type="number" min="0" step="0.01" value="${nonNegative(employee.customMonthlyThreshold)}" />
+            </label>
+            <label>Свой тариф сверх порога, %
+              <input data-field="customRateExcess" type="number" min="0" step="0.01" value="${nonNegative(employee.customRateExcess)}" />
+            </label>
+            <label>Месяцев работы в годовом прогнозе
+              <input data-field="annualMonths" type="number" min="0" max="12" step="1" value="${Math.max(0, Math.min(12, Math.round(nonNegative(employee.annualMonths ?? 12))))}" />
+            </label>
+          </div>
+          <div class="schedule-box">
+            <div class="schedule-head">
+              <div>
+                <h3>График выплат по месяцам</h3>
+                <p class="schedule-help">Для повышения с июля выберите июль сверху и измените оклад в основной строке — новый оклад автоматически заполнится с июля по декабрь. Здесь можно отдельно поправить любой месяц.</p>
+              </div>
+              <div class="toolbar">
+                <button class="btn small" data-action="copy-selected-forward">Выбранный месяц → до декабря</button>
+                <button class="btn small" data-action="copy-selected-all">Выбранный месяц → весь год</button>
+              </div>
+            </div>
+            <div class="schedule-table-wrap">
+              <table class="schedule-table">
+                <thead><tr><th>Месяц</th><th>Оклад чистыми</th><th>Премия чистыми</th><th>Прочее чистыми</th><th>Всего на руки</th><th>Стоимость работодателю</th></tr></thead>
+                <tbody>${scheduleRows}</tbody>
+              </table>
+            </div>
+          </div>
+        </td>`;
+        els.employeesBody.appendChild(adv);
+      }
+    });
+
+    const n = state.employees.length;
+    els.employeeCount.textContent = `${n} ${plural(n, ['сотрудник','сотрудника','сотрудников'])}`;
+  }
+
+  function plural(n, forms) {
+    const n10 = n % 10, n100 = n % 100;
+    if (n10 === 1 && n100 !== 11) return forms[0];
+    if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return forms[1];
+    return forms[2];
+  }
+
+  function renderTotals() {
+    const t = calculateTotals();
+    els.totalGross.textContent = fmtMoney(t.gross);
+    els.totalNdfl.textContent = fmtMoney(t.ndfl);
+    els.totalNet.textContent = fmtMoney(t.net);
+    els.totalContributions.textContent = fmtMoney(t.contributions);
+    els.totalEmployerCost.textContent = fmtMoney(t.employerCost);
+
+    const annual = calculateAnnualTotals();
+    els.annualGross.textContent = fmtMoney(annual.gross);
+    els.annualNdfl.textContent = fmtMoney(annual.ndfl);
+    els.annualNet.textContent = fmtMoney(annual.net);
+    els.annualContributions.textContent = fmtMoney(annual.contributions);
+    els.annualEmployerCost.textContent = fmtMoney(annual.employerCost);
+  }
+
+  function refreshScheduleTable(employeeId) {
+    const employee = state.employees.find(e => e.id === employeeId);
+    const advancedRow = [...els.employeesBody.querySelectorAll('tr.advanced-row')].find(tr => tr.dataset.id === employeeId);
+    if (!employee || !advancedRow) return;
+    const breakdown = calculateAnnualBreakdown(employee);
+    breakdown.forEach(item => {
+      ['net', 'employerCost'].forEach(key => {
+        const cell = advancedRow.querySelector(`[data-schedule-output="${key}"][data-month="${item.month}"]`);
+        if (cell) cell.textContent = fmtMoney(item[key]);
+      });
+    });
+  }
+
+  function refreshEmployeeRow(employeeId) {
+    const employee = state.employees.find(e => e.id === employeeId);
+    const row = [...els.employeesBody.querySelectorAll('tr')].find(tr => tr.dataset.id === employeeId && !tr.classList.contains('advanced-row'));
+    if (!employee || !row) return;
+    const selectedMonth = clampMonth(state.settings.month);
+    const c = calculateEmployee(employee, selectedMonth);
+    const annual = calculateAnnualEmployee(employee);
+    const monthly = getMonthlyCompensation(employee, selectedMonth);
+    ['netSalary', 'netBonus', 'netOther'].forEach(field => {
+      const input = row.querySelector(`[data-field="${field}"]`);
+      if (input && document.activeElement !== input) input.value = monthly[field];
+    });
+    const values = {
+      gross: c.gross,
+      ndfl: c.ndfl,
+      net: c.net,
+      unified: c.unified,
+      accident: c.accident,
+      extraPension: c.extraPension,
+      employerCost: c.employerCost,
+      annualEmployerCost: annual.employerCost
+    };
+    Object.entries(values).forEach(([key, value]) => {
+      const cell = row.querySelector(`[data-output="${key}"]`);
+      if (cell) cell.textContent = fmtMoney(value);
+    });
+    const annualCell = row.querySelector('[data-output="annualEmployerCost"]');
+    if (annualCell) annualCell.title = `Прогноз за ${annual.months} мес.`;
+    refreshScheduleTable(employeeId);
+  }
+
+  function render() {
+    syncSettingsToUI();
+    renderEmployees();
+    renderTotals();
+  }
+
+  function scheduleSave() {
+    els.saveStatus.textContent = 'Сохранение…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(exportObject()));
+      els.saveStatus.textContent = 'Сохранено локально';
+    }, 180);
+  }
+
+  function updateAndRender() {
+    renderEmployees();
+    renderTotals();
+    scheduleSave();
+  }
+
+  function exportObject() {
+    return {
+      schemaVersion: 4,
+      app: 'Расчётник ФОТ РФ',
+      inputBasis: 'net',
+      savedAt: new Date().toISOString(),
+      settings: state.settings,
+      employees: state.employees
+    };
+  }
+
+  function downloadJson() {
+    const data = JSON.stringify(exportObject(), null, 2);
+    const blob = new Blob([data], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const month = String(state.settings.month).padStart(2,'0');
+    a.href = url;
+    a.download = `fot-${state.settings.year}-${month}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('JSON сохранён');
+  }
+
+  async function copyJson() {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(exportObject(), null, 2));
+      toast('JSON скопирован');
+    } catch {
+      toast('Браузер не разрешил доступ к буферу');
+    }
+  }
+
+  function importJsonFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        state = normalizeState(parsed);
+        expanded.clear();
+        render();
+        scheduleSave();
+        toast('Данные загружены');
+      } catch (e) {
+        alert(`Не удалось загрузить JSON: ${e.message}`);
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  function toast(message) {
+    els.toast.textContent = message;
+    els.toast.classList.add('show');
+    clearTimeout(els.toast._timer);
+    els.toast._timer = setTimeout(() => els.toast.classList.remove('show'), 1700);
+  }
+
+  function bindSettings() {
+    const mapping = {
+      year: 'year', month: 'month', defaultTariff: 'defaultTariff', accidentClass: 'accidentClass',
+      contributionLimit: 'contributionLimit', mrot: 'mrot', standardRateBelow: 'standardRateBelow',
+      standardRateAbove: 'standardRateAbove', smeThresholdMultiplier: 'smeThresholdMultiplier',
+      smeRateExcess: 'smeRateExcess', manufacturingRateExcess: 'manufacturingRateExcess'
+    };
+    Object.entries(mapping).forEach(([id, key]) => {
+      els[id].addEventListener('input', () => {
+        state.settings[key] = ['defaultTariff'].includes(key) ? els[id].value : num(els[id].value);
+        updateAndRender();
+      });
+    });
+    els.directorMinimumEnabled.addEventListener('change', () => {
+      state.settings.directorMinimumEnabled = els.directorMinimumEnabled.checked;
+      updateAndRender();
+    });
+  }
+
+  function setEmployeeField(employee, field, target) {
+    if (['netSalary', 'netBonus', 'netOther'].includes(field)) {
+      const month = target.dataset.month ? clampMonth(target.dataset.month) : clampMonth(state.settings.month);
+      setMonthlyCompensation(employee, month, field, num(target.value), target.dataset.apply === 'forward');
+    } else if (target.type === 'checkbox') employee[field] = target.checked;
+    else if (field === 'name' || field === 'tariffMode') employee[field] = target.value;
+    else if (field === 'accidentRateOverride') employee[field] = target.value.trim() === '' ? '' : num(target.value);
+    else employee[field] = num(target.value);
+  }
+
+  function bindEmployeeTable() {
+    // Во время набора не пересоздаём строку — курсор больше не прыгает, цифры вводятся нормально.
+    els.employeesBody.addEventListener('input', event => {
+      const target = event.target;
+      const field = target.dataset.field;
+      if (!field || target.type === 'checkbox' || target.tagName === 'SELECT') return;
+      const row = target.closest('tr[data-id]');
+      const employee = row && state.employees.find(e => e.id === row.dataset.id);
+      if (!employee) return;
+      setEmployeeField(employee, field, target);
+      if (field !== 'name') {
+        refreshEmployeeRow(employee.id);
+        renderTotals();
+      }
+      scheduleSave();
+    });
+
+    // После выхода из поля нормализуем значение и полностью обновляем интерфейс.
+    els.employeesBody.addEventListener('change', event => {
+      const target = event.target;
+      const field = target.dataset.field;
+      if (!field) return;
+      const row = target.closest('tr[data-id]');
+      const employee = row && state.employees.find(e => e.id === row.dataset.id);
+      if (!employee) return;
+      setEmployeeField(employee, field, target);
+      updateAndRender();
+    });
+
+    // Колесо мыши прокручивает страницу, но никогда не меняет числовое поле.
+    els.employeesBody.addEventListener('wheel', event => {
+      const target = event.target;
+      if (target.matches('input[type="number"]')) target.blur();
+    }, { passive: true });
+
+    els.employeesBody.addEventListener('click', event => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+      const row = button.closest('tr[data-id]');
+      const id = row && row.dataset.id;
+      const employee = state.employees.find(e => e.id === id);
+      if (button.dataset.action === 'delete') {
+        state.employees = state.employees.filter(e => e.id !== id);
+        expanded.delete(id);
+      } else if (button.dataset.action === 'toggle') {
+        expanded.has(id) ? expanded.delete(id) : expanded.add(id);
+      } else if (employee && button.dataset.action === 'copy-selected-forward') {
+        const source = getMonthlyCompensation(employee, state.settings.month);
+        ['netSalary', 'netBonus', 'netOther'].forEach(field => setMonthlyCompensation(employee, state.settings.month, field, source[field], true));
+        toast(`Суммы с ${MONTHS[clampMonth(state.settings.month)-1].toLowerCase()} скопированы до декабря`);
+      } else if (employee && button.dataset.action === 'copy-selected-all') {
+        const source = getMonthlyCompensation(employee, state.settings.month);
+        employee.monthlyCompensation = createMonthlyCompensation(source.netSalary, source.netBonus, source.netOther);
+        syncEmployeeBaseFromSchedule(employee);
+        toast('Суммы выбранного месяца применены ко всему году');
+      }
+      updateAndRender();
+    });
+  }
+
+  function bindToolbar() {
+    els.addEmployeeBtn.addEventListener('click', () => {
+      const e = newEmployee('', 0);
+      state.employees.push(e);
+      expanded.add(e.id);
+      updateAndRender();
+    });
+    els.exportBtn.addEventListener('click', downloadJson);
+    els.importBtn.addEventListener('click', () => els.fileInput.click());
+    els.fileInput.addEventListener('change', () => {
+      const file = els.fileInput.files && els.fileInput.files[0];
+      if (file) importJsonFile(file);
+      els.fileInput.value = '';
+    });
+    els.copyBtn.addEventListener('click', copyJson);
+    els.printBtn.addEventListener('click', () => window.print());
+    els.resetBtn.addEventListener('click', () => {
+      if (!confirm('Удалить текущие данные и вернуть значения по умолчанию?')) return;
+      state = defaultState();
+      expanded.clear();
+      render();
+      scheduleSave();
+      toast('Данные сброшены');
+    });
+  }
+
+  document.addEventListener('wheel', event => {
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.type === 'number' && document.activeElement === target) {
+      target.blur();
+    }
+  }, { passive: true });
+
+  fillStaticOptions();
+  bindSettings();
+  bindEmployeeTable();
+  bindToolbar();
+  render();
+  scheduleSave();
+})();
+</script>
+</body>
+</html>
